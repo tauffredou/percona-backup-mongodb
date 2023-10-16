@@ -11,7 +11,7 @@ MONGO_TEST_VERSION?=4.4
 define ENVS
 	GO111MODULE=$(GOMOD) \
 	GOOS=$(GOOS) \
-	GOFLAGS='-buildvcs=false'
+	GOFLAGS=''
 endef
 
 define ENVS_STATIC
