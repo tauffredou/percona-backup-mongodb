@@ -12,6 +12,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/pkg/errors"
@@ -249,6 +250,14 @@ func (b *Blob) ensureContainer() error {
 }
 
 func (b *Blob) client() (*azblob.Client, error) {
+	if b.opts.Credentials.Key == "" {
+		cred, err := azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "create credentials")
+		}
+		return azblob.NewClient(BlobURL, cred, nil)
+	}
+
 	cred, err := azblob.NewSharedKeyCredential(b.opts.Account, b.opts.Credentials.Key)
 	if err != nil {
 		return nil, errors.Wrap(err, "create credentials")
