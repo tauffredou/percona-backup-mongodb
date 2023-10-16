@@ -255,7 +255,7 @@ func (b *Blob) client() (*azblob.Client, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "create credentials")
 		}
-		return azblob.NewClient(BlobURL, cred, nil)
+		return azblob.NewClient(fmt.Sprintf(BlobURL, b.opts.Account), cred, nil)
 	}
 
 	cred, err := azblob.NewSharedKeyCredential(b.opts.Account, b.opts.Credentials.Key)
