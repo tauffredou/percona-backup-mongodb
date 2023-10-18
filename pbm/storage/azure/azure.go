@@ -32,6 +32,13 @@ const (
 	maxBlocks = 50_000
 )
 
+type AuthType string
+
+const (
+	SharedKey    AuthType = "sharedKey"
+	DefaultAzure AuthType = "default"
+)
+
 type Conf struct {
 	Account     string      `bson:"account" json:"account,omitempty" yaml:"account,omitempty"`
 	Container   string      `bson:"container" json:"container,omitempty" yaml:"container,omitempty"`
@@ -40,7 +47,8 @@ type Conf struct {
 }
 
 type Credentials struct {
-	Key string `bson:"key" json:"key,omitempty" yaml:"key,omitempty"`
+	Type AuthType `bson:"authType" json:"authType,omitempty" yaml:"authType,omitempty"`
+	Key  string   `bson:"key" json:"key,omitempty" yaml:"key,omitempty"`
 }
 
 type Blob struct {
@@ -250,24 +258,25 @@ func (b *Blob) ensureContainer() error {
 }
 
 func (b *Blob) client() (*azblob.Client, error) {
-	if b.opts.Credentials.Key == "" {
-		cred, err := azidentity.NewDefaultAzureCredential(nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "create credentials")
-		}
-		return azblob.NewClient(fmt.Sprintf(BlobURL, b.opts.Account), cred, nil)
-	}
-
-	cred, err := azblob.NewSharedKeyCredential(b.opts.Account, b.opts.Credentials.Key)
-	if err != nil {
-		return nil, errors.Wrap(err, "create credentials")
-	}
-
 	opts := &azblob.ClientOptions{}
 	opts.Retry = policy.RetryOptions{
 		MaxRetries: defaultRetries,
 	}
-	return azblob.NewClientWithSharedKeyCredential(fmt.Sprintf(BlobURL, b.opts.Account), cred, opts)
+	switch b.opts.Credentials.Type {
+	case DefaultAzure:
+		cred, err := azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "create credentials")
+		}
+		return azblob.NewClient(fmt.Sprintf(BlobURL, b.opts.Account), cred, opts)
+	default:
+		cred, err := azblob.NewSharedKeyCredential(b.opts.Account, b.opts.Credentials.Key)
+		if err != nil {
+			return nil, errors.Wrap(err, "create credentials")
+		}
+		return azblob.NewClientWithSharedKeyCredential(fmt.Sprintf(BlobURL, b.opts.Account), cred, opts)
+	}
+
 }
 
 func isNotFound(err error) bool {
